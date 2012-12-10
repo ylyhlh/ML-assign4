@@ -34,11 +34,12 @@ dofile("mcluster.lua")
 -- k: number of clusters
 function kmeans(n,k)
 -- Remove the following line and add your stuff
-print("You have to define this function by yourself!");
+--print("You have to define this function by yourself!");
 
-   mk={}
+   local mk={}
    mk.features=n
    mk.clusterSize=k
+   mk.center=torch.Tensor(1):fill(0)--store the center for each example
    for i=1,mk.clusterSize do
       mk[i]=mcluster(n)
    end
@@ -70,19 +71,20 @@ print("You have to define this function by yourself!");
       end
       --iteration
       local sk=torch.Tensor(mk.clusterSize):fill(0)--store numbers of example for each cluster
-      local center=torch.Tensor(datasize):fill(0)--store the center for each example
+      mk.center:resize(datasize):fill(0)--store the center for each example
       for i=1,max_iter do
          print(i)
          sk:fill(0)
          local flag=0 --flag to determine whether converge
+         
          --compute center for each example
          for j=1,datasize do
             local tmp=mk:g(x[j])
-            if tmp~=center[j] then
+            if tmp~=mk.center[j] then
                flag=1
             end
-            center[j]=tmp
-            sk[center[j]]=sk[center[j]]+1
+            mk.center[j]=tmp
+            sk[mk.center[j]]=sk[mk.center[j]]+1
             --print(tmp)
          end
          
@@ -96,7 +98,7 @@ print("You have to define this function by yourself!");
             local dataset=torch.Tensor(sk[j],mk.features)
             local count=0
             for l=1,datasize do
-               if center[l]==j then
+               if mk.center[l]==j then
                   count=count+1
                   dataset[count]=x[l]:clone()
                end
@@ -105,18 +107,19 @@ print("You have to define this function by yourself!");
          end
       end
    end
-   --
+   --compress the image
    function mk:compress(x)
       local datasize= x:size(1)
       local loss=0
-      local sk=torch.Tensor(mk.clusterSize):fill(0)--store numbers of example for each cluster
+      --local sk=torch.Tensor(mk.clusterSize):fill(0)--store numbers of example for each cluster
       for j=1,datasize do
          local center=mk:g(x[j])
-         sk[center]=sk[center]+1
+         --sk[center]=sk[center]+1
          --print(center)
          loss=loss*((j-1)/j)+mk[center]:eval(x[j])*mk[center]:eval(x[j])/j
          x[j]=mk:f(x[j]):clone()
       end
+      return loss
    end
 
    return mk

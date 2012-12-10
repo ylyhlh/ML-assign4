@@ -37,5 +37,97 @@ dofile("kmeans.lua")
 -- k: number of gaussians
 function mog(n,k)
 -- Remove the following line and add your stuff
-print("You have to define this function by yourself!");
+--print("You have to define this function by yourself!");
+   local m={}
+   m.features=n--number of features
+   m.gaussianSize=k--number of gaussians
+   m.datasize=0--number of titles
+   m.respons=torch.Tensor(1,1):fill(0)--responsibilities
+   m.M=torch.Tensor(m.gaussianSize,m.features)--means
+   m.W=torch.Tensor(m.gaussianSize)--mixing coefficients
+
+   --creat the gaussians
+   for i=1,m.gaussianSize do
+      m[i]=gaussian(n)
+   end
+
+   
+   --m:g(x): The decision function which returns a vector of k elements indicating each gaussian's likelihood
+   function m:g(x)
+   end
+   --m:f(x): The output function to output a prototype that could replace vector x.
+   function m:f(x)
+   end
+   
+   --m:learn(x,p,eps): learn the gaussians using x, which is an m*n matrix representing m data samples. p is regularization to keep each gaussian's covariance matrices non-singular. eps is a stop criterion.
+   function m:learn(x,p,eps)
+      --init the gaussian with kmeans
+      m.datasize=x:size(1)
+      local mk=kmeans(m.features,m.gaussianSize)
+      mk:learn(x)
+      --init the responsibility with binary result from k means
+      m.respons:resize(m.datasize,m.gaussianSize):fill(0)
+      for i=1,m.datasize do
+         m.respons[i][mk.center[i]]=1
+      end
+      --first is M step to get W, mean M, covariances stored in gaussians
+      m:mstep(x,p)
+      --m:estep(x)
+      err0=m:evalue(x)
+      for i=1,100 do
+          print(i)
+         m:estep(x)
+         m:mstep(x,p)
+         err1=m:evalue(x)
+         print(torch.abs((err0-err1)/err0))
+         if torch.abs((err0-err1)/err0)<eps then 
+            break
+         end
+         --if loss become bigger
+         if (err0-err1)/err0>10*eps then 
+            break
+         end
+         err0=err1
+      end
+      --begin the iterations
+   end
+
+   
+   --M step
+   function m:mstep(x,p)
+      local Nk=torch.sum( m.respons, 1)[1]
+      --print(m.respons:select(2,1))
+      for i=1,m.gaussianSize do
+         m[i]:learn(x,m.respons:select(2,i),p)
+      end
+      m.W=torch.div(Nk,m.datasize)
+   end
+   --E step
+   function m:estep(x)
+      for i=1,m.datasize do
+         local weight=torch.Tensor(m.gaussianSize):fill(0)
+         for j=1,m.gaussianSize do
+            weight[j]=m[j]:eval(x[i])*m.W[j]
+         end
+         local sum=torch.sum(weight)
+         weight:div(sum)
+         m.respons:select(1,i):copy(weight)
+      end
+   end
+
+   function m:evalue(x)
+      local err=0
+      for i=1,m.datasize do
+         local weight=torch.Tensor(m.gaussianSize):fill(0)
+         for j=1,m.gaussianSize do
+            weight[j]=m[j]:eval(x[i])*m.W[j]
+         end
+         local sum=torch.sum(weight)
+         --print(torch.log(sum))
+         err=err-torch.log(sum)
+      end
+      print(err)
+      return err
+   end
+   return m
 end
