@@ -1,3 +1,5 @@
+
+
 --[[
 Sample Main File
 By Xiang Zhang (xiang.zhang [at] nyu.edu) and Durk Kingma
@@ -11,6 +13,7 @@ Learning at New York University, taught by professor Yann LeCun
 This file shows an example of using the tile utilities.
 ]]
 
+`
 require("image")
 dofile("tile.lua")
 
