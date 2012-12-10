@@ -13,9 +13,10 @@ Learning at New York University, taught by professor Yann LeCun
 This file shows an example of using the tile utilities.
 ]]
 
-`
 require("image")
 dofile("tile.lua")
+dofile("mcluster.lua")
+dofile("kmeans.lua")
 
 -- An example of using tile
 function main()
@@ -23,12 +24,18 @@ function main()
    im = tile.imread('boat.png')
    -- Convert to 7500*64 tiles representing 8x8 patches
    t = tile.imtile(im,{8,8})
+
+   mk=kmeans(64,10)
+   mk:learn(t)
+   --print(mk:f(t[1]))
+   mk:compress(t)
    -- Convert back to 800*600 image with 8x8 patches
    im2 = tile.tileim(t,{8,8},{600,800})
    -- Show the image
    image.display(im2)
    -- The following call can save the image
    -- tile.imwrite(im2,'boat2.png')
+
 end
 
 main()
