@@ -54,9 +54,18 @@ function mog(n,k)
    
    --m:g(x): The decision function which returns a vector of k elements indicating each gaussian's likelihood
    function m:g(x)
+     local weight=torch.Tensor(m.gaussianSize):fill(0)
+     for j=1,m.gaussianSize do
+        weight[j]=m[j]:eval(x)*m.W[j]
+     end
+     local sum=torch.sum(weight)
+     weight:div(sum)
+     return weight
    end
    --m:f(x): The output function to output a prototype that could replace vector x.
    function m:f(x)
+      local max,index=torch.max(m:g(x),1)
+      return m[index[1]].m
    end
    
    --m:learn(x,p,eps): learn the gaussians using x, which is an m*n matrix representing m data samples. p is regularization to keep each gaussian's covariance matrices non-singular. eps is a stop criterion.
@@ -67,14 +76,15 @@ function mog(n,k)
       mk:learn(x)
       --init the responsibility with binary result from k means
       m.respons:resize(m.datasize,m.gaussianSize):fill(0)
-      for i=1,m.datasize do
-         m.respons[i][mk.center[i]]=1
-      end
+      --for i=1,m.datasize do
+      --   m.respons[i][mk.center[i]]=1
+      --end
+      m.respons:copy(mk.respons)
       --first is M step to get W, mean M, covariances stored in gaussians
       m:mstep(x,p)
       --m:estep(x)
       err0=m:evalue(x)
-      for i=1,100 do
+      for i=1,10 do
           print(i)
          m:estep(x)
          m:mstep(x,p)
@@ -105,12 +115,7 @@ function mog(n,k)
    --E step
    function m:estep(x)
       for i=1,m.datasize do
-         local weight=torch.Tensor(m.gaussianSize):fill(0)
-         for j=1,m.gaussianSize do
-            weight[j]=m[j]:eval(x[i])*m.W[j]
-         end
-         local sum=torch.sum(weight)
-         weight:div(sum)
+         local weight=m:g(x[i])
          m.respons:select(1,i):copy(weight)
       end
    end
@@ -129,5 +134,22 @@ function mog(n,k)
       print(err)
       return err
    end
+
+      --compress the image
+   function m:compress(x)
+      local loss=0
+      --local sk=torch.Tensor(mk.clusterSize):fill(0)--store numbers of example for each cluster
+      for j=1,m.datasize do
+         local max,index=torch.max(m:g(x[j]),1)
+         local center=index[1]
+         --sk[center]=sk[center]+1
+         --print(center)
+         loss=loss*((j-1)/j)+m[center]:eval(x[j])*m[center]:eval(x[j])/j
+         x[j]=m:f(x[j]):clone()
+      end
+      --print(loss)
+      return loss
+   end
+   
    return m
 end

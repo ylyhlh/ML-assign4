@@ -37,9 +37,11 @@ function kmeans(n,k)
 --print("You have to define this function by yourself!");
 
    local mk={}
-   mk.features=n
-   mk.clusterSize=k
+   mk.features=n--number of features
+   mk.clusterSize=k--number of clusters
+   mk.datasize=0--number of titles
    mk.center=torch.Tensor(1):fill(0)--store the center for each example
+   mk.respons=torch.Tensor(1,1):fill(0)--responsibilities
    for i=1,mk.clusterSize do
       mk[i]=mcluster(n)
    end
@@ -72,8 +74,9 @@ function kmeans(n,k)
       --iteration
       local sk=torch.Tensor(mk.clusterSize):fill(0)--store numbers of example for each cluster
       mk.center:resize(datasize):fill(0)--store the center for each example
+      mk.respons:resize(datasize,mk.clusterSize):fill(0)
       for i=1,max_iter do
-         print(i)
+         print("This is kmean "..i.." -th step")
          sk:fill(0)
          local flag=0 --flag to determine whether converge
          
@@ -85,6 +88,7 @@ function kmeans(n,k)
             end
             mk.center[j]=tmp
             sk[mk.center[j]]=sk[mk.center[j]]+1
+            mk.respons[j][mk.center[j]]=1
             --print(tmp)
          end
          
@@ -95,6 +99,7 @@ function kmeans(n,k)
          end
          --update cluster
          for j=1,mk.clusterSize do
+         --[[
             local dataset=torch.Tensor(sk[j],mk.features)
             local count=0
             for l=1,datasize do
@@ -104,6 +109,14 @@ function kmeans(n,k)
                end
             end
             mk[j]:learn(dataset,torch.ones(sk[j]))
+            ]]
+            if torch.sum(mk.respons:select(2,j))<=1 then
+               print("one cluster converge to one point")
+               mk[j]:set_m(x[torch.randperm(datasize)[1]])
+            else
+               --print(torch.sum(mk.respons:select(2,j)))
+               mk[j]:learn(x,mk.respons:select(2,j))
+            end 
          end
       end
    end
@@ -129,10 +142,10 @@ function kmeans(n,k)
       for i=1,mk.clusterSize do
          Hk[i]=torch.sum(torch.eq(mk.center,torch.Tensor(datasize):fill(i)))/datasize
       end
-      print(Hk)
+      --print(Hk)
       local Histogram_Entropy= -torch.sum(Hk:cmul(torch.log(Hk):div(torch.log(2))))
       local Number_of_bits =datasize * Histogram_Entropy
-      print(Number_of_bits)
+
       return Number_of_bits
    end
 
