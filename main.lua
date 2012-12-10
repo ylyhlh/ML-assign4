@@ -24,12 +24,12 @@ function main()
    im = tile.imread('boat.png')
    -- Convert to 7500*64 tiles representing 8x8 patches
    t = tile.imtile(im,{8,8})
-   local mixg=mog(64,8)
-   mixg:learn(t,1e-3,1e-3)
-   --local mk=kmeans(64,10)
-   --mk:learn(t)
-   --print(mk:f(t[1]))
-   --mk:compress(t)
+   --local mixg=mog(64,8)
+   --mixg:learn(t,1e-3,1e-3)
+   local mk=kmeans(64,8)
+   mk:learn(t)
+   mk:histogram(t)
+   mk:compress(t)
    -- Convert back to 800*600 image with 8x8 patches
    im2 = tile.tileim(t,{8,8},{600,800})
    -- Show the image

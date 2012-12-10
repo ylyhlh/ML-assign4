@@ -119,7 +119,21 @@ function kmeans(n,k)
          loss=loss*((j-1)/j)+mk[center]:eval(x[j])*mk[center]:eval(x[j])/j
          x[j]=mk:f(x[j]):clone()
       end
+      --print(loss)
       return loss
+   end
+   --compute Number_of_bits
+   function mk:histogram(x)
+      local datasize= x:size(1)
+      local Hk=torch.Tensor(mk.clusterSize):fill(0)
+      for i=1,mk.clusterSize do
+         Hk[i]=torch.sum(torch.eq(mk.center,torch.Tensor(datasize):fill(i)))/datasize
+      end
+      print(Hk)
+      local Histogram_Entropy= -torch.sum(Hk:cmul(torch.log(Hk):div(torch.log(2))))
+      local Number_of_bits =datasize * Histogram_Entropy
+      print(Number_of_bits)
+      return Number_of_bits
    end
 
    return mk
