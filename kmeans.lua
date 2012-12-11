@@ -79,12 +79,14 @@ function kmeans(n,k)
          print("This is kmean "..i.." -th step")
          sk:fill(0)
          local flag=0 --flag to determine whether converge
-         
          --compute center for each example
          for j=1,datasize do
             local tmp=mk:g(x[j])
             if tmp~=mk.center[j] then
                flag=1
+            end
+            if mk.center[j]~=0 then
+               mk.respons[j][mk.center[j]]=0
             end
             mk.center[j]=tmp
             sk[mk.center[j]]=sk[mk.center[j]]+1
@@ -110,7 +112,7 @@ function kmeans(n,k)
             end
             mk[j]:learn(dataset,torch.ones(sk[j]))
             ]]
-            if torch.sum(mk.respons:select(2,j))<=1 then
+            if torch.sum(mk.respons:select(2,j))<=0 then
                print("one cluster converge to one point")
                mk[j]:set_m(x[torch.randperm(datasize)[1]])
             else
